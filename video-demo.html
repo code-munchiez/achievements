@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Achievement Video Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #ffd700;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .controls {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .input-group {
+            margin: 15px 0;
+        }
+        
+        label {
+            display: inline-block;
+            width: 120px;
+            text-align: left;
+        }
+        
+        input[type="text"] {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255,255,255,0.9);
+            color: #333;
+            width: 250px;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #1a1a2e;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 5px;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: scale(1.05);
+        }
+        
+        button:active {
+            transform: scale(0.95);
+        }
+        
+        #videoCanvas {
+            border: 2px solid #ffd700;
+            border-radius: 10px;
+            background: #000;
+            margin: 20px 0;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        
+        .achievement-list {
+            text-align: left;
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .achievement-item {
+            background: rgba(255,215,0,0.1);
+            border-left: 4px solid #ffd700;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        
+        .achievement-title {
+            font-weight: bold;
+            color: #ffd700;
+        }
+        
+        .achievement-desc {
+            color: #cccccc;
+            margin: 5px 0;
+        }
+        
+        .achievement-time {
+            color: #888888;
+            font-size: 12px;
+        }
+        
+        .export-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏆 Achievement Video Generator</h1>
+        
+        <div class="controls">
+            <h3>Create Achievement</h3>
+            <div class="input-group">
+                <label for="title">Title:</label>
+                <input type="text" id="title" placeholder="Enter achievement title" value="First Achievement">
+            </div>
+            <div class="input-group">
+                <label for="description">Description:</label>
+                <input type="text" id="description" placeholder="Enter achievement description" value="Completed your first task!">
+            </div>
+            <button onclick="addAchievement()">Add Achievement</button>
+            <button onclick="generateVideo()">Generate Video Frame</button>
+            <button onclick="playAnimation()">Play Animation</button>
+            <button onclick="clearAchievements()">Clear All</button>
+        </div>
+        
+        <canvas id="videoCanvas" width="800" height="600"></canvas>
+        
+        <div class="achievement-list">
+            <h3>Your Achievements</h3>
+            <div id="achievementsList"></div>
+        </div>
+        
+        <div class="export-section">
+            <h3>Export / Import</h3>
+            <button onclick="exportData()">Export Data</button>
+            <button onclick="importData()">Import Data</button>
+            <button onclick="downloadFrame()">Download Frame</button>
+        </div>
+    </div>
+
+    <script src="video.js"></script>
+    <script>
+        // Initialize video generator
+        const videoGen = new AchievementVideo();
+        let animationId = null;
+        let currentAchievementIndex = 0;
+        let frameNumber = 0;
+
+        // Initialize canvas
+        videoGen.initCanvas('videoCanvas');
+
+        function addAchievement() {
+            const title = document.getElementById('title').value;
+            const description = document.getElementById('description').value;
+            
+            if (title && description) {
+                videoGen.addAchievement(title, description);
+                updateAchievementsList();
+                
+                // Clear inputs
+                document.getElementById('title').value = '';
+                document.getElementById('description').value = '';
+                
+                // Generate frame for the new achievement
+                generateVideo();
+            } else {
+                alert('Please enter both title and description');
+            }
+        }
+
+        function generateVideo() {
+            const achievements = videoGen.achievements;
+            if (achievements.length > 0) {
+                const latestAchievement = achievements[achievements.length - 1];
+                videoGen.generateAchievementFrame(latestAchievement, frameNumber);
+            } else {
+                alert('Please add at least one achievement first');
+            }
+        }
+
+        function playAnimation() {
+            if (videoGen.achievements.length === 0) {
+                alert('Please add at least one achievement first');
+                return;
+            }
+
+            // Stop any existing animation
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+
+            frameNumber = 0;
+            currentAchievementIndex = 0;
+            
+            function animate() {
+                if (currentAchievementIndex < videoGen.achievements.length) {
+                    videoGen.generateAchievementFrame(
+                        videoGen.achievements[currentAchievementIndex], 
+                        frameNumber
+                    );
+                    
+                    frameNumber++;
+                    
+                    // Switch to next achievement after 90 frames (3 seconds at 30fps)
+                    if (frameNumber >= 90) {
+                        frameNumber = 0;
+                        currentAchievementIndex++;
+                    }
+                    
+                    animationId = requestAnimationFrame(animate);
+                } else {
+                    // Loop back to first achievement
+                    currentAchievementIndex = 0;
+                    frameNumber = 0;
+                    animationId = requestAnimationFrame(animate);
+                }
+            }
+            
+            animate();
+        }
+
+        function updateAchievementsList() {
+            const list = document.getElementById('achievementsList');
+            const achievements = videoGen.achievements;
+            
+            if (achievements.length === 0) {
+                list.innerHTML = '<p>No achievements yet. Add your first achievement!</p>';
+                return;
+            }
+            
+            list.innerHTML = achievements.map((achievement, index) => `
+                <div class="achievement-item">
+                    <div class="achievement-title">${achievement.title}</div>
+                    <div class="achievement-desc">${achievement.description}</div>
+                    <div class="achievement-time">${achievement.timestamp.toLocaleString()}</div>
+                </div>
+            `).join('');
+        }
+
+        function clearAchievements() {
+            if (confirm('Are you sure you want to clear all achievements?')) {
+                videoGen.achievements = [];
+                updateAchievementsList();
+                
+                // Clear canvas
+                const canvas = document.getElementById('videoCanvas');
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#1a1a2e';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Stop animation
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                    animationId = null;
+                }
+            }
+        }
+
+        function exportData() {
+            const data = videoGen.exportAchievements();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'achievements.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            videoGen.loadAchievements(data);
+                            updateAchievementsList();
+                            generateVideo();
+                        } catch (error) {
+                            alert('Error importing data: ' + error.message);
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            input.click();
+        }
+
+        function downloadFrame() {
+            const canvas = document.getElementById('videoCanvas');
+            const link = document.createElement('a');
+            link.download = 'achievement-frame.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        // Initialize with empty list
+        updateAchievementsList();
+
+        // Add sample achievement on load
+        setTimeout(() => {
+            videoGen.addAchievement('Welcome!', 'Started using Achievement Video Generator');
+            updateAchievementsList();
+            generateVideo();
+        }, 1000);
+    </script>
+</body>
+</html>
